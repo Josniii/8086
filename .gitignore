@@ -1,0 +1,4 @@
+/.vscode
+/8086
+/out/*
+!/out/.gitkeep
