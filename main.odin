@@ -116,16 +116,24 @@ main :: proc() {
             fmt.printf("mov %v, %v\n", reg_decode, immediate)
         case instruction & 0b1111_1110 == u8(MemToAcc):
             fmt.println("; MEMORY TO ACCUMULATOR")
-            word := instruction & 0b0000_0001
-            addr: u16
-            addr, i = decode_acc_addr(word, i, &bytes)
-            fmt.printf("mov ax, [%v]\n", addr)
+            word := instruction & 0b1
+            addr := u16(bytes[i+1]) | (u16(bytes[i+2]) << 8)
+            i += 2
+            if word == 1 {
+                fmt.printf("mov ax, [%v]\n", addr)
+            } else {
+                fmt.printf("mov al, [%v]\n", addr)
+            }
         case instruction & 0b1111_1110 == u8(AccToMem):
             fmt.println("; ACCUMULATOR TO MEMORY")
-            word := instruction & 0b0000_0001
-            addr: u16
-            addr, i = decode_acc_addr(word, i, &bytes)
-            fmt.printf("mov [%v], ax\n", addr)
+            word := instruction & 0b1
+            addr := u16(bytes[i+1]) | (u16(bytes[i+2]) << 8)
+            i += 2
+            if word == 1 {
+                fmt.printf("mov [%v], ax\n", addr)
+            } else {
+                fmt.printf("mov [%v], al\n", addr)
+            }
         case:
             fmt.printf("; Unknown instruction byte: %x\n", instruction)
         }
@@ -134,6 +142,7 @@ main :: proc() {
 
 decode_rm_field :: proc(rm: u8, reg: u8, mod: u8, word: u8, i: int, p_bytes: ^[]u8) -> (rm_decode: string, new_index: int) {
     bytes := p_bytes^
+    new_index = i
     switch mod {
         case 0b11: // Register mode
             if word == 1 {
@@ -144,16 +153,16 @@ decode_rm_field :: proc(rm: u8, reg: u8, mod: u8, word: u8, i: int, p_bytes: ^[]
         case 0b10: // Memory mode, 16 bit displacement
             displacement := i16(bytes[i+1]) | (i16(bytes[i+2]) << 8)
             rm_decode = fmt.tprintf("[%v + %v]", rm_table[rm], displacement)
-            new_index = i + 2
+            new_index += 2
         case 0b01: // Memory mode, 8 bit displacement
             displacement := i8(bytes[i+1])
             rm_decode = fmt.tprintf("[%v + %v]", rm_table[rm], displacement)
-            new_index = i + 1
+            new_index += 1
         case 0b00: // Memory mode, no displacement (except R/M = 0b110)
             if rm == 0b110 {
                 direct_address := i16(bytes[i+1]) | (i16(bytes[i+2]) << 8)
                 rm_decode = fmt.tprintf("[%v]", direct_address)
-                new_index = i + 2
+                new_index += 2
             } else if reg < 0b100 {
                 rm_decode = fmt.tprintf("[%v]", rm_table[rm])
             } else {
@@ -161,16 +170,4 @@ decode_rm_field :: proc(rm: u8, reg: u8, mod: u8, word: u8, i: int, p_bytes: ^[]
             }
     }
     return rm_decode, new_index
-}
-
-decode_acc_addr :: proc(word: u8, i: int, p_bytes: ^[]u8) -> (addr: u16, new_index: int) {
-    bytes := p_bytes^
-    if word == 1 {
-        addr = u16(bytes[i+1]) | (u16(bytes[i+2]) << 8)
-        new_index = i + 2
-    } else {
-        addr = u16(bytes[i+1])
-        new_index = i + 1
-    }
-    return addr, new_index
 }
