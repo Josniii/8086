@@ -8,3 +8,4 @@ for file in os.listdir("tests"):
         with open(out_file, "w") as f:
             os.system(f"8086 tests/{file} > {out_file}.asm")
         os.system(f"nasm {out_file}.asm -o {out_file}")
+        os.system(f"diff {out_file} tests/{file}")

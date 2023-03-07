@@ -1,4 +1,6 @@
 /.vscode
 /8086
 /out/*
+*.dSYM
+*.bin
 !/out/.gitkeep
