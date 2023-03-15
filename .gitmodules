@@ -1,0 +1,3 @@
+[submodule "tests/computer_enhance"]
+	path = tests/computer_enhance
+	url = git@github.com:cmuratori/computer_enhance.git
