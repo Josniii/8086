@@ -63,6 +63,34 @@ main :: proc() {
                 fmt.println("cbw")
             case instr == u8(ConvertWordToDoubleWord):
                 fmt.println("cwd")
+            case instr == u8(CallDirectInSeg):
+                ip_incr := (i16(bytes[i + 1]) | (i16(bytes[i + 2]) << 8))
+                i += 2
+                // i is the instruction pointer so the increment has to be added to i + 1
+                ip := ip_incr + i16(i + 1)
+                fmt.printf("call %v\n", ip)
+            case instr == u8(JmpDirectInSeg):
+                ip_incr := (i16(bytes[i + 1]) | (i16(bytes[i + 2]) << 8))
+                i += 2
+                // i is the instruction pointer so the increment has to be added to i + 1
+                ip := ip_incr + i16(i + 1)
+                fmt.printf("jmp %v\n", ip)
+            case instr == u8(JmpDirectInSegShort):
+                ip := i8(bytes[i + 1])
+                i += 1
+                fmt.printf("jmp %v\n", ip)
+            case instr == u8(CallDirectInterSeg):
+                ip := u16(bytes[i + 1]) | (u16(bytes[i + 2]) << 8)
+                i += 2
+                cs := u16(bytes[i + 1]) | (u16(bytes[i + 2]) << 8)
+                i += 2
+                fmt.printf("call %v:%v\n", cs, ip)
+            case instr == u8(JmpDirectInterSeg):
+                ip := u16(bytes[i + 1]) | (u16(bytes[i + 2]) << 8)
+                i += 2
+                cs := u16(bytes[i + 1]) | (u16(bytes[i + 2]) << 8)
+                i += 2
+                fmt.printf("jmp %v:%v\n", cs, ip)
             case instr == u8(ReturnInSeg):
                 fmt.println("ret")
             case instr == u8(ReturnInSegAddImmediate):
@@ -70,13 +98,11 @@ main :: proc() {
                 i += 2
                 fmt.printf("ret %v\n", immediate);
             case instr == u8(ReturnInterSeg):
-                fmt.println("; interseg")
-                fmt.println("iret")
+                fmt.println("retf")
             case instr == u8(ReturnInterSegAddImmediate):
-                fmt.println("; interseg add immediate")
                 immediate := u16(bytes[i + 1]) | (u16(bytes[i + 2]) << 8)
                 i += 2
-                fmt.printf("iret %v\n", immediate);
+                fmt.printf("retf %v\n", immediate);
             case instr == u8(JumpOnEqual): fallthrough
             case instr == u8(JumpOnLess): fallthrough
             case instr == u8(JumpOnLessOrEqual): fallthrough
@@ -103,7 +129,7 @@ main :: proc() {
                 i += 1
                 fmt.printf("int %v\n", interrupt_type)
             case instr == u8(InterruptType3):
-                fmt.println("int 3")
+                fmt.println("int3")
             case instr == u8(InterruptOnOverflow):
                 fmt.println("into")
             case instr == u8(InterruptReturn):
@@ -163,7 +189,7 @@ main :: proc() {
                 } else {
                     fmt.printf("stosb\n")
                 }
-            case instr & 0b1111_1100 == u8(MovRegOrMemToOrFromReg):
+            case instr & 0b1111_1100 == u8(MovRmToOrFromReg):
                 direction, word, mod, reg, rm: u8
                 i, direction, word, mod, reg, rm = decode_reg_rm_instr(i, &bytes)
                 reg_decode := reg_tables[word][reg]
@@ -174,7 +200,18 @@ main :: proc() {
                 } else {
                     fmt.printf("mov %v, %v\n", rm_decode, reg_decode)
                 }
-            case instr & 0b1111_1110 == u8(MovImmediateToRegOrMem):
+            case instr & 0b1111_1100 == u8(MovRmToOrFromSegReg):
+                direction, word, mod, reg, rm: u8
+                i, direction, word, mod, reg, rm = decode_reg_rm_instr(i, &bytes)
+                reg_decode := seg_reg_table[reg]
+                rm_decode: string
+                rm_decode, i = disassemble_rm(rm, mod, word, i, &bytes)
+                if direction == 1 {
+                    fmt.printf("mov %v, %v\n", reg_decode, rm_decode)
+                } else {
+                    fmt.printf("mov %v, %v\n", rm_decode, reg_decode)
+                }
+            case instr & 0b1111_1110 == u8(MovImmediateToRm):
                 rm_decode, immediate_decode: string
                 opcode: u8;
                 i, _, rm_decode, immediate_decode = immediate_mod_op_rm_instr(i, &bytes, 0)

@@ -2,9 +2,11 @@ package sim8086
 
 Opcode8086 :: enum u8 {
     // Data transfer
-    MovRegOrMemToOrFromReg = 0b1000_1000,
-    MovImmediateToRegOrMem = 0b1100_0110,
+    MovRmToOrFromReg = 0b1000_1000,
+    MovImmediateToRm = 0b1100_0110,
     MovImmediateToReg = 0b1011_0000,
+    MovRmToOrFromSegReg = 0b1000_1100,
+    
     MovMemToAcc = 0b1010_0000,
     MovAccToMem = 0b1010_0010,
     PushOrPopReg = 0b0101_0000,
@@ -52,6 +54,12 @@ Opcode8086 :: enum u8 {
     Group2RegOrRem = 0b1111_1110,
 
     //Control flow
+    CallDirectInSeg = 0b1110_1000,
+    CallDirectInterSeg = 0b1001_1010,
+    CallOrJumpIndirect = 0b1111_1111,
+    JmpDirectInSeg = 0b1110_1001,
+    JmpDirectInSegShort = 0b1110_1011,
+    JmpDirectInterSeg = 0b1110_1010,
     ReturnInSeg = 0b1100_0011,
     ReturnInSegAddImmediate = 0b1100_0010,
     ReturnInterSeg = 0b1100_1011,
@@ -181,9 +189,9 @@ group_tables: [2]LookupTable = {
         "inc",
         "dec",
         "call",
-        "call",
+        "call far",
         "jmp",
-        "jmp",
+        "jmp far",
         "push",
         "-g2", // does not exist - see manual.
     },
