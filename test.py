@@ -8,4 +8,4 @@ for file in os.listdir("tests/computer_enhance/perfaware/part1"):
         with open(out_file, "w") as f:
             os.system(f"8086 tests/computer_enhance/perfaware/part1/{file} > {out_file}.asm")
         os.system(f"nasm {out_file}.asm -o {out_file}")
-        os.system(f"diff {out_file} tests/computer_enhance/perfaware/part1/{file}")
+        os.system(f"cmp {out_file} tests/computer_enhance/perfaware/part1/{file}")

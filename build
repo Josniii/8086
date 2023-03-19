@@ -1,2 +1,2 @@
 #!/bin/bash
-odin build . -out="8086"
+odin build . -out="8086" -debug

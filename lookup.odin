@@ -7,11 +7,55 @@ Opcode8086 :: enum u8 {
     MovImmediateToReg = 0b1011_0000,
     MovMemToAcc = 0b1010_0000,
     MovAccToMem = 0b1010_0010,
+    PushOrPopReg = 0b0101_0000,
+    PushOrPopSegmentReg = 0b0000_0110,
+    PopRegOrMem = 0b1000_1111,
+    XchgRegOrMemWithReg = 0b1000_0110,
+    XchgRegWithAcc = 0b1001_0000,
+    InOut = 0b1110_0100,
+    Xlat = 0b1101_0111,
+    LoadEffectiveAddress = 0b1000_1101,
+    LoadPointerToDs = 0b1100_0101,
+    LoadPointerToEs = 0b1100_0100,
+    LoadAHWithFlags = 0b1001_1111,
+    StoreAHIntoFlags = 0b1001_1110,
+    PushFlags = 0b1001_1100,
+    PopFlags = 0b1001_1101,
 
     // Arithmetic (ADD/SUB/CMP)
     ArithRegOrMemWithRegToEither = 0b0000_0000,
     ArithImmediateToRegOrMem = 0b1000_0000,
-    ArithImmediateToAcc = 0b00000100,
+    ArithImmediateToAcc = 0b0000_0100,
+    IncOrDecRegister = 0b0100_0000,
+    AsciiAdjustForAdd = 0b0011_0111,
+    AsciiAdjustForSubtract = 0b0011_1111,
+    AsciiAdjustForMultiply = 0b1101_0100,
+    AsciiAdjustForDivide = 0b1101_0101,
+    DecimalAdjustForAdd = 0b0010_0111,
+    DecimalAdjustForSubtract = 0b0010_1111,
+    ConvertByteToWord = 0b1001_1000,
+    ConvertWordToDoubleWord = 0b1001_1001,
+    ShiftOrRotate = 0b1101_0000,
+    TestRmAndReg = 0b1000_0100,
+    TestImmediateAndAcc = 0b1010_1000,
+
+    // String manipulation
+    RepeatStr = 0b1111_0010,
+    MoveByteOrWord = 0b1010_0100,
+    CompareByteOrWord = 0b1010_0110,
+    ScanByteOrWord = 0b1010_1110,
+    LoadByteOrWordToAcc = 0b1010_1100,
+    StoreByteOrWordToAcc = 0b1010_1010,
+
+    // Instructions with grouped opcodes -  see page 178
+    Group1RegOrRem = 0b1111_0110,
+    Group2RegOrRem = 0b1111_1110,
+
+    //Control flow
+    ReturnInSeg = 0b1100_0011,
+    ReturnInSegAddImmediate = 0b1100_0010,
+    ReturnInterSeg = 0b1100_1011,
+    ReturnInterSegAddImmediate = 0b1100_1010,
 
     // Conditional jumps
     JumpOnEqual = 0b0111_0100,
@@ -34,29 +78,59 @@ Opcode8086 :: enum u8 {
     LoopWhileZero = 0b1110_0001,
     LoopWhileNotZero = 0b1110_0000,
     JumpOnCXZero = 0b1110_0011,
+
+    //Interrupts
+    InterruptTypeSpecified = 0b1100_1101,
+    InterruptType3 = 0b1100_1100,
+    InterruptOnOverflow = 0b1100_1110,
+    InterruptReturn = 0b1100_1111,
+
+    //Processor Control
+    ClearCarry = 0b1111_1000,
+    ComplementCarry = 0b1111_0101,
+    SetCarry = 0b1111_1001,
+    ClearDirection = 0b1111_1100,
+    SetDirection = 0b1111_1101,
+    ClearInterrupt = 0b1111_1010,
+    SetInterrupt = 0b1111_1011,
+    Halt = 0b1111_0100,
+    Wait = 0b1001_1011,
+    EscapeToExternalDevice = 0b1101_1000,
+    BusLockPrefix = 0b1111_0000,
+    SegmentOverridePrefix = 0b0010_0110,
 }
 
-reg_word_table: [8]string = {
-    "ax",
-    "cx",
-    "dx",
-    "bx",
-    "sp",
-    "bp",
-    "si",
-    "di",
+LoadInstruction :: enum {
+    LEA,
+    LDS,
+    LES,
 }
-reg_table: [8]string = {
-    "al",
-    "cl",
-    "dl",
-    "bl",
-    "ah",
-    "ch",
-    "dh",
-    "bh",
+
+LookupTable :: [8]string
+
+reg_tables: [2]LookupTable = {
+    {
+        "al",
+        "cl",
+        "dl",
+        "bl",
+        "ah",
+        "ch",
+        "dh",
+        "bh",
+    },
+    {
+        "ax",
+        "cx",
+        "dx",
+        "bx",
+        "sp",
+        "bp",
+        "si",
+        "di",
+    },
 }
-rm_table: [8]string = {
+rm_table: LookupTable = {
     "bx + si",
     "bx + di",
     "bp + si",
@@ -66,7 +140,13 @@ rm_table: [8]string = {
     "bp",
     "bx",
 }
-arith_op_table: [8]string = {
+seg_reg_table: [4]string = {
+    "es",
+    "cs",
+    "ss",
+    "ds",
+}
+arith_op_table: LookupTable = {
     "add",
     "or",
     "adc",
@@ -75,6 +155,38 @@ arith_op_table: [8]string = {
     "sub",
     "xor",
     "cmp",
+}
+shift_op_table: LookupTable = {
+    "rol",
+    "ror",
+    "rcl",
+    "rcr",
+    "shl",
+    "shr",
+    "-st", // does not exist - see manual.
+    "sar",
+}
+group_tables: [2]LookupTable = {
+    {
+        "test",
+        "-g1", // does not exist - see manual.
+        "not",
+        "neg",
+        "mul",
+        "imul",
+        "div",
+        "idiv",
+    },
+    {
+        "inc",
+        "dec",
+        "call",
+        "call",
+        "jmp",
+        "jmp",
+        "push",
+        "-g2", // does not exist - see manual.
+    },
 }
 
 lookup_jmp_mnemonic :: proc(instr: Opcode8086) -> string {
