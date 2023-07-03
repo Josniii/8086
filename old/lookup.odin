@@ -1,5 +1,7 @@
 package sim8086
 
+
+
 Opcode8086 :: enum u8 {
     // Data transfer
     MovRmToOrFromReg = 0b1000_1000,
@@ -112,6 +114,23 @@ LoadInstruction :: enum {
     LEA,
     LDS,
     LES,
+}
+
+Registers :: enum {
+    ax,
+    cx,
+    dx,
+    bx,
+    sp,
+    bp,
+    si,
+    di,
+}
+SegmentRegisters :: enum {
+    es,
+    cs,
+    ss,
+    ds,
 }
 
 LookupTable :: [8]string
