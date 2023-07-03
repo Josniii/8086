@@ -140,7 +140,7 @@ OperationType :: enum {
     Cmps,
     Scas,
     Lods,
-    Stds,
+    Stos,
     Call,
     Jmp,
     Ret,

@@ -183,7 +183,7 @@ instruction_formats: []InstructionFormat : {
     {.Cmps, {{.Literal, 7, 0, 0b1010_011}, W}},
     {.Scas, {{.Literal, 7, 0, 0b1010_111}, W}},
     {.Lods, {{.Literal, 7, 0, 0b1010_110}, W}},
-    {.Stds, {{.Literal, 7, 0, 0b1010_101}, W}},
+    {.Stos, {{.Literal, 7, 0, 0b1010_101}, W}},
     // CONTROL TRANSFER
     // CALL = Call:
     {.Call, {{.Literal, 8, 0, 0b1110_1000}, ADDRLO, ADDRHI}},
@@ -238,5 +238,5 @@ instruction_formats: []InstructionFormat : {
     {.Wait, {{.Literal, 8, 0, 0b1001_1011}}},
     {.Esc, {{.Literal, 5, 0, 0b1101_1}, XXX, MOD, YYY, RM}},
     {.Lock, {{.Literal, 8, 0, 0b1111_0000}}},
-    {.Segment, {{.Literal, 3, 0, 0b001}, REG, {.Literal, 3, 0, 0b110}}},
+    {.Segment, {{.Literal, 3, 0, 0b001}, SR, {.Literal, 3, 0, 0b110}}},
 }

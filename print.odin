@@ -116,7 +116,7 @@ mnemonic_string_table : []string = {
     "cmps",
     "scas",
     "lods",
-    "stds",
+    "stos",
     "call",
     "jmp",
     "ret",

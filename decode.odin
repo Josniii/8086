@@ -157,6 +157,7 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
                     index = RegisterIndex(int(RegisterIndex.ES) + parts[InstructionFormatPartUsage.SR] & 0b11),
                     count = 2, //Always wide.
                 })
+                fmt.println(";", reg_operand)
             }
 
             // Handle REG part
