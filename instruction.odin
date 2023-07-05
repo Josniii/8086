@@ -11,12 +11,13 @@ Instruction :: struct {
 // Encodes an operand for an instruction (an address, a register, or an immediate value)
 Operand :: struct {
     type: OperandType,
-    value: union {
-        EffectiveAddressExpression,
-        RegisterAccess,
-        u16,
-        i16,
-    },
+    value: OperandValue,
+}
+
+OperandValue :: union {
+    EffectiveAddressExpression,
+    RegisterAccess,
+    Immediate,
 }
 
 // Encodes an address calculation
@@ -84,7 +85,6 @@ OperandType :: enum {
     Register,
     Memory,
     Immediate,
-    RelativeImmediate,
 }
 
 OperationType :: enum {

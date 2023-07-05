@@ -183,15 +183,15 @@ instruction_formats: []InstructionFormat : {
     {.Cmps, {{.Literal, 7, 0, 0b1010_011}, W}},
     {.Scas, {{.Literal, 7, 0, 0b1010_111}, W}},
     {.Lods, {{.Literal, 7, 0, 0b1010_110}, W}},
-    {.Stos, {{.Literal, 7, 0, 0b1010_101}, W}},
+    {.Stos, {{.Literal, 7, 0, 0b1010_101}, W}}, //Table notes this as Stds, but that instruction does not exist.
     // CONTROL TRANSFER
     // CALL = Call:
-    {.Call, {{.Literal, 8, 0, 0b1110_1000}, ADDRLO, ADDRHI}},
+    {.Call, {{.Literal, 8, 0, 0b1110_1000}, ADDRLO, ADDRHI, RelativeJMPDisplacement}},
     {.Call, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b010}, RM, ImpW1}},
     {.Call, {{.Literal, 8, 0, 0b1001_1010}, ADDRLO, ADDRHI, DATA, DATAIFW, ImpW1}},
     {.Call, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b011}, RM, ImpW1}},
     // JMP = Jump:
-    {.Jmp, {{.Literal, 8, 0, 0b1110_1001}, ADDRLO, ADDRHI}},
+    {.Jmp, {{.Literal, 8, 0, 0b1110_1001}, ADDRLO, ADDRHI, RelativeJMPDisplacement}},
     {.Jmp, {{.Literal, 8, 0, 0b1110_1011}, ADDRLO}},
     {.Jmp, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b100}, RM, ImpW1}},
     {.Jmp, {{.Literal, 8, 0, 0b1110_1010}, ADDRLO, ADDRHI, DATA, DATAIFW, ImpW1}},
@@ -238,5 +238,5 @@ instruction_formats: []InstructionFormat : {
     {.Wait, {{.Literal, 8, 0, 0b1001_1011}}},
     {.Esc, {{.Literal, 5, 0, 0b1101_1}, XXX, MOD, YYY, RM}},
     {.Lock, {{.Literal, 8, 0, 0b1111_0000}}},
-    {.Segment, {{.Literal, 3, 0, 0b001}, SR, {.Literal, 3, 0, 0b110}}},
+    {.Segment, {{.Literal, 3, 0, 0b001}, SR, {.Literal, 3, 0, 0b110}}}, // Table notes this as having REG, but there's only room for SR! (and that makes sense)
 }

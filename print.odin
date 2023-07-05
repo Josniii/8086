@@ -53,9 +53,12 @@ print_instruction :: proc(instruction: ^Instruction) {
                     fmt.printf("%s", register_string_table[access.index][access.count == 2 ? 2 : (access.offset & 1)])
                     //fmt.println(";", access.index, access.count, access.offset)
                 case .Immediate:
-                    fmt.printf("%d", operand.value)
-                case .RelativeImmediate:
-                    fmt.printf("$%+d", operand.value)
+                    immediate := operand.value.(Immediate)
+                    if immediate.relative {
+                        fmt.printf("$%+d", immediate.value)
+                    } else {
+                        fmt.printf("%d", immediate.value)
+                    }
             }
         }
     }

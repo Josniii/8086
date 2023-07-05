@@ -157,7 +157,6 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
                     index = RegisterIndex(int(RegisterIndex.ES) + parts[InstructionFormatPartUsage.SR] & 0b11),
                     count = 2, //Always wide.
                 })
-                fmt.println(";", reg_operand)
             }
 
             // Handle REG part
@@ -202,14 +201,20 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
 
             if .RelativeJMPDisplacement in parts_set {
                 assert(other_operand.type == .None)
-                other_operand.type = .RelativeImmediate
-                other_operand.value = i16(displacement + i16(instruction.size))
+                other_operand.type = .Immediate
+                other_operand.value = Immediate({
+                    value = i32(i32(displacement) + i32(instruction.size)),
+                    relative = true
+                })
             }
 
             if .HasData in parts_set {
                 assert(other_operand.type == .None)
                 other_operand.type = .Immediate
-                other_operand.value = u16(parts[InstructionFormatPartUsage.Data])
+                other_operand.value = Immediate({
+                    value = i32(parts[InstructionFormatPartUsage.Data]), 
+                    relative = false,
+                })
             }
 
             if .V in parts_set {
@@ -220,7 +225,10 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
                     other_operand.value = RegisterAccess({.C, 0, 1})
                 } else {
                     other_operand.type = .Immediate
-                    other_operand.value = i16(1)
+                    other_operand.value = Immediate({
+                        value = 1,
+                        relative = false,
+                    })
                 }
             }
         }
