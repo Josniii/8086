@@ -9,6 +9,20 @@ is_printable :: proc(instruction: Instruction) -> bool {
 }
 
 print_instruction :: proc(instruction: ^Instruction) {
+    print_effective_address_expression :: proc(address: EffectiveAddressExpression) {
+        separator := ""
+        for term in address.terms {
+            register := term.register
+            if register.index != .None {
+                fmt.printf("%s", separator)
+                fmt.printf("%s", get_register_name(register))
+                separator = "+"
+            }
+        }
+        if address.displacement != 0 {
+            fmt.printf("%+d", address.displacement)
+        }
+    }
     suffix := ""
     if .Lock in instruction.flags {
         fmt.printf("lock ")
@@ -35,19 +49,26 @@ print_instruction :: proc(instruction: ^Instruction) {
                 case .None:
                 case .Memory:
                     address := operand.value.(EffectiveAddressExpression)
-                    if instruction.operands[0].type != .Register {
-                        fmt.printf("%s", .Wide in instruction.flags ? "word " : "byte ")
+
+                    if .Far in instruction.flags {
+                        fmt.printf("far ")
                     }
 
-                    if .Segment in instruction.flags {
-                        fmt.printf("%s:", register_string_table[address.segment][2])
-                    }
+                    if address.explicit_segment != 0 {
+                        fmt.printf("%d:%d", address.explicit_segment, address.displacement)
+                    } else {
+                        if instruction.operands[0].type != .Register {
+                            fmt.printf("%s", .Wide in instruction.flags ? "word " : "byte ")
+                        }
 
-                    fmt.printf("[%s", effective_address_table[address.base])
-                    if address.displacement != 0 {
-                        fmt.printf("%+d", address.displacement)
+                        if .Segment in instruction.flags {
+                            fmt.printf("%s:", get_register_name({instruction.segment_override, 0, 2}))
+                        }
+
+                        fmt.printf("[")
+                        print_effective_address_expression(address)
+                        fmt.printf("]")
                     }
-                    fmt.printf("]")
                 case .Register:
                     access := operand.value.(RegisterAccess)
                     fmt.printf("%s", register_string_table[access.index][access.count == 2 ? 2 : (access.offset & 1)])
@@ -55,7 +76,7 @@ print_instruction :: proc(instruction: ^Instruction) {
                 case .Immediate:
                     immediate := operand.value.(Immediate)
                     if immediate.relative {
-                        fmt.printf("$%+d", immediate.value)
+                        fmt.printf("$%+d", immediate.value + i32(instruction.size))
                     } else {
                         fmt.printf("%d", immediate.value)
                     }
@@ -123,6 +144,7 @@ mnemonic_string_table : []string = {
     "call",
     "jmp",
     "ret",
+    "retf",
     "je",
     "jl",
     "jle",
@@ -161,6 +183,9 @@ mnemonic_string_table : []string = {
     "segment",
 }
 
+get_register_name :: proc(register: RegisterAccess) -> string {
+    return register_string_table[register.index][register.count == 2 ? 2 : (register.offset & 1)]
+}
 // Maps RegisterIndex values to strings
 register_string_table : [][3]string = {
     {"",   "",   ""},

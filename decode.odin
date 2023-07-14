@@ -19,7 +19,6 @@ accept_instruction :: proc(disassembly_context: ^DisassemblyContext, instruction
         case:
             // "Consume" flags
             disassembly_context.flags = {}
-            disassembly_context.default_segment = .DS
     }
 }
 
@@ -75,7 +74,7 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
         }
     }
     if valid_instruction {
-        // fmt.printf("; %s\n", at_seg.offset - 1) // Fairly helpful for finding instruction locations
+        fmt.printf("; %d\n", at_seg.offset - 1) // Fairly helpful for finding instruction locations
         // Parse remaining parts that can be derived from above (displacement and data)
         parse_immediate :: proc(memory: ^Memory, at_seg: ^SegmentAccess, wide, sign_extend: bool) -> (immediate: int) {
             if wide {
@@ -90,9 +89,9 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
                 }
                 at_seg.offset += 1
             }
-            return immediate
+            return
         }
-        load_reg_operand :: proc(operand: ^Operand, reg_index: int, wide: bool) {
+        load_reg_operand :: proc(reg_index: int, wide: bool) -> (result: Operand) {
             // Table 4-9 - REG (Register) Field Encoding
             register_table: [][2]RegisterAccess = {
                 //  W = 0       W = 1
@@ -105,8 +104,9 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
                 {{.D, 1, 1}, {.SI, 0, 2}},
                 {{.B, 1, 1}, {.DI, 0, 2}},
             }
-            operand.type = .Register
-            operand.value = register_table[reg_index & 0b111][int(wide)]
+            result.type = .Register
+            result.value = register_table[reg_index & 0b111][int(wide)]
+            return
         }
         // Grab all the parts we parsed above
         mod, reg, rm := 
@@ -121,18 +121,19 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
         has_direct_addr := mod == 0b00 && rm == 0b110
         
         //displacement
-        has_disp := parts[InstructionFormatPartUsage.HasDisp] != 0 || mod == 0b10 || mod == 0b01 || has_direct_addr
+        has_disp := .Disp in parts_set || mod == 0b10 || mod == 0b01 || has_direct_addr
         disp_is_w := parts[InstructionFormatPartUsage.DispAlwaysW] != 0 || mod == 0b10 || has_direct_addr
         if has_disp {
             parts[InstructionFormatPartUsage.Disp] |= parse_immediate(memory, &at_seg, disp_is_w, !disp_is_w)
         }
-        displacement := i16(parts[InstructionFormatPartUsage.Disp])
+        displacement := i32(parts[InstructionFormatPartUsage.Disp])
 
-        has_data := parts[InstructionFormatPartUsage.HasData] != 0
+        has_data := .Data in parts_set
         data_is_w := parts[InstructionFormatPartUsage.WMakesDataW] != 0 && w && !s
         if has_data {
             parts[InstructionFormatPartUsage.Data] |= parse_immediate(memory, &at_seg, data_is_w, s)
         }
+        data := parts[InstructionFormatPartUsage.Data]
 
         // Construct the fixed parts of the instruction
         {
@@ -143,6 +144,10 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
             if w {
                 instruction.flags |= {.Wide}
             }
+            if .Far in parts_set {
+                instruction.flags |= {.Far}
+            }
+            instruction.segment_override = disassembly_context.default_segment
         }
 
         // Construct REG operand for instruction (if there is one)
@@ -162,7 +167,7 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
             // Handle REG part
             if .REG in parts_set {
                 assert(reg_operand.type == .None) // Ensure we're not overriding the operand.
-                load_reg_operand(reg_operand, reg, w)
+                reg_operand^ = load_reg_operand(reg, w)
             }
         }
 
@@ -172,63 +177,52 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
             // Same idea as with reg_operand above.
             mod_operand := &instruction.operands[d ? 1 : 0]
             if mod == 0b11 {
-                load_reg_operand(mod_operand, rm, w || (parts[InstructionFormatPartUsage.RMREGAlwaysW] != 0))
+                mod_operand^ = load_reg_operand(rm, w || (parts[InstructionFormatPartUsage.RMREGAlwaysW] != 0))
             } else {
-                base: EffectiveAddressBase
+                // See Table 4-10 - R/M (Register/Memory) Field Encoding
+                e_addr_term_0 : [8]RegisterIndex = {.B, .B, .BP, .BP, .SI, .DI, .BP, .B}
+                e_addr_term_1 : [8]RegisterIndex = {.SI, .DI, .SI, .DI, .None, .None, .None, .None}
+                reg_0 := e_addr_term_0[rm & 0b111]
+                reg_1 := e_addr_term_1[rm & 0b111]
                 if mod == 0b00 && rm == 0b110 {
-                    base = .Direct
-                } else {
-                    base = EffectiveAddressBase(rm + 1)
+                    // direct
+                    reg_0, reg_1 = .None, .None
                 }
-                mod_operand.type = .Memory
-                mod_operand.value = EffectiveAddressExpression({
-                    segment = disassembly_context.default_segment,
-                    displacement = displacement,
-                    base = base,
-                })
+                mod_operand^ = effective_address_operand(
+                    register_access(reg_0, 0, 2), 
+                    register_access(reg_1, 0, 2), 
+                    displacement
+                )
             }
         }
 
-        // Construct any other types of operands (if there is one)
-        // Primarily immediates - but there are other strange types of values as well.
-        {
-            other_operand: ^Operand
-            if instruction.operands[0].type == .None {
-                other_operand = &instruction.operands[0]
-            } else {
+        if .Data in parts_set && .Disp in parts_set && .MOD not_in parts_set {
+            instruction.operands[0] = intersegment_address_operand(u32(data), displacement)
+        } else {
+            // Construct any other types of operands (if there is one)
+            // Primarily immediates - but there are other strange types of values as well.
+            other_operand : ^Operand = &instruction.operands[0]
+            if other_operand.type != .None {
                 other_operand = &instruction.operands[1]
             }
 
             if .RelativeJMPDisplacement in parts_set {
                 assert(other_operand.type == .None)
-                other_operand.type = .Immediate
-                other_operand.value = Immediate({
-                    value = i32(i32(displacement) + i32(instruction.size)),
-                    relative = true
-                })
+                other_operand^ = immediate_operand(displacement, true)
             }
 
-            if .HasData in parts_set {
+            if .Data in parts_set {
                 assert(other_operand.type == .None)
-                other_operand.type = .Immediate
-                other_operand.value = Immediate({
-                    value = i32(parts[InstructionFormatPartUsage.Data]), 
-                    relative = false,
-                })
+                other_operand^ = immediate_operand(i32(data))
             }
 
             if .V in parts_set {
                 assert(other_operand.type == .None)
                 v := parts[InstructionFormatPartUsage.V] != 0
                 if v {
-                    other_operand.type = .Register
-                    other_operand.value = RegisterAccess({.C, 0, 1})
+                    other_operand^ = register_operand(.C, 1)
                 } else {
-                    other_operand.type = .Immediate
-                    other_operand.value = Immediate({
-                        value = 1,
-                        relative = false,
-                    })
+                    other_operand^ = immediate_operand(1)
                 }
             }
         }

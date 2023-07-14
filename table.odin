@@ -22,12 +22,11 @@ InstructionFormatPartUsage :: enum {
     SR,
     Disp,
     Data,
-    HasDisp,
     DispAlwaysW,
-    HasData,
     WMakesDataW,
     RMREGAlwaysW,
     RelativeJMPDisplacement,
+    Far,
     D,
     S,
     W,
@@ -52,13 +51,13 @@ InstructionFormatPartUsage :: enum {
 @(private) REG : InstructionFormatPart : {.REG, 3, 0, 0}
 @(private) SR : InstructionFormatPart : {.SR, 2, 0, 0}
 
-@(private) DISP : InstructionFormatPart : {.HasDisp, 0, 0, 1}
-@(private) ADDRLO : InstructionFormatPart : {.HasDisp, 0, 0, 1}
+@(private) DISP : InstructionFormatPart : {.Disp, 0, 0, 0}
+@(private) ADDRLO : InstructionFormatPart : {.Disp, 0, 0, 0}
 @(private) ADDRHI : InstructionFormatPart : {.DispAlwaysW, 0, 0, 1}
-@(private) DATA : InstructionFormatPart : {.HasData, 0, 0, 1}
+@(private) DATA : InstructionFormatPart : {.Data, 0, 0, 0}
 @(private) DATAIFW : InstructionFormatPart : {.WMakesDataW, 0, 0, 1}
 
-// These are implicitly understood instruction parts, to explicitly insert into the table.
+// These represent implicitly understood information about instruction, to explicitly encode into the table.
 @(private) ImpD1 : InstructionFormatPart : {.D, 0, 0, 1}               // D = 1
 @(private) ImpD0 : InstructionFormatPart : {.D, 0, 0, 0}               // D = 0
 @(private) ImpS1 : InstructionFormatPart : {.S, 0, 0, 1}               // S = 1
@@ -73,6 +72,7 @@ InstructionFormatPartUsage :: enum {
 // Flags
 @(private) RMREGAlwaysW : InstructionFormatPart : {.RMREGAlwaysW, 0, 0, 1}
 @(private) RelativeJMPDisplacement : InstructionFormatPart : {.RelativeJMPDisplacement, 0, 0, 1}
+@(private) Far : InstructionFormatPart : {.Far, 0, 0, 1}
 
 // ==================================================================================================================/
 // The 8086 assembly instruction table.
@@ -189,18 +189,18 @@ instruction_formats: []InstructionFormat : {
     {.Call, {{.Literal, 8, 0, 0b1110_1000}, ADDRLO, ADDRHI, RelativeJMPDisplacement}},
     {.Call, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b010}, RM, ImpW1}},
     {.Call, {{.Literal, 8, 0, 0b1001_1010}, ADDRLO, ADDRHI, DATA, DATAIFW, ImpW1}},
-    {.Call, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b011}, RM, ImpW1}},
+    {.Call, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b011}, RM, ImpW1, Far}},
     // JMP = Jump:
     {.Jmp, {{.Literal, 8, 0, 0b1110_1001}, ADDRLO, ADDRHI, RelativeJMPDisplacement}},
-    {.Jmp, {{.Literal, 8, 0, 0b1110_1011}, ADDRLO}},
+    {.Jmp, {{.Literal, 8, 0, 0b1110_1011}, ADDRLO, RelativeJMPDisplacement}},
     {.Jmp, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b100}, RM, ImpW1}},
     {.Jmp, {{.Literal, 8, 0, 0b1110_1010}, ADDRLO, ADDRHI, DATA, DATAIFW, ImpW1}},
-    {.Jmp, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b101}, RM, ImpW1}},
+    {.Jmp, {{.Literal, 8, 0, 0b1111_1111}, MOD, {.Literal, 3, 0, 0b101}, RM, ImpW1, Far}},
     // RET = Return from CALL:
     {.Ret, {{.Literal, 8, 0, 0b1100_0011}}},
     {.Ret, {{.Literal, 8, 0, 0b1100_0010}, DATA, DATAIFW, ImpW1}},
-    {.Ret, {{.Literal, 8, 0, 0b1100_1011}}},
-    {.Ret, {{.Literal, 8, 0, 0b1100_1010}, DATA, DATAIFW, ImpW1}},
+    {.Retf, {{.Literal, 8, 0, 0b1100_1011}}}, // retf is not in the manual, but seems to be a thing.
+    {.Retf, {{.Literal, 8, 0, 0b1100_1010}, DATA, DATAIFW, ImpW1}},
     {.Je, {{.Literal, 8, 0, 0b0111_0100}, ADDRLO, RelativeJMPDisplacement}},
     {.Jl, {{.Literal, 8, 0, 0b0111_1100}, ADDRLO, RelativeJMPDisplacement}},
     {.Jle, {{.Literal, 8, 0, 0b0111_1110}, ADDRLO, RelativeJMPDisplacement}},
