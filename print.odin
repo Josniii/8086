@@ -86,6 +86,14 @@ print_instruction :: proc(instruction: ^Instruction) {
     fmt.println();
 }
 
+print_registers :: proc(registers: ^Registers) {
+  fmt.printf("; Registers:\n; a: %d,  b: %d,  c: %d,  d: %d,\n;sp: %d, bp: %d, si: %d, di: %d,\n;es: %d, cs: %d, ss: %d, ds: %d,\n;ip: %d,        flags: %d\n", 
+    registers.ax, registers.bx, registers.cx, registers.dx,
+    registers.sp, registers.bp, registers.si, registers.di,
+    registers.es, registers.cs, registers.ss, registers.ds,
+    registers.ip, registers.flags)
+}
+
 // Maps OperationType values to strings
 mnemonic_string_table : []string = {
     "", // .None

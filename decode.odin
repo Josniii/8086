@@ -5,6 +5,7 @@ import "core:fmt"
 DisassemblyContext :: struct {
     default_segment: RegisterIndex,
     flags: InstructionFlagSet,
+    registers: Registers,
 }
 
 accept_instruction :: proc(disassembly_context: ^DisassemblyContext, instruction: Instruction) {

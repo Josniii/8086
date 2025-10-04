@@ -18,6 +18,7 @@ main :: proc() {
 
 disassemble_from_memory:: proc(memory: ^Memory, num_bytes: u16) {
     at_seg: SegmentAccess
+    registers: Registers
     disassembly_context := DisassemblyContext({
         default_segment = .DS, // The Data Segment is the default segment.
     })
@@ -39,5 +40,9 @@ disassemble_from_memory:: proc(memory: ^Memory, num_bytes: u16) {
         if is_printable(instruction) {
             print_instruction(&instruction)
         }
+
+        // print_registers(&registers)
+        simulate_instruction(&disassembly_context, &registers, instruction)
     }
+    print_registers(&registers)
 }
