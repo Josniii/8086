@@ -70,7 +70,7 @@ attempt_instruction_decode :: proc(disassembly_context: ^DisassemblyContext, ins
         } else {
             // Add the parsed part.
             parts[part.usage] |= (int(value) << part.shift)
-            incl(&parts_set, part.usage) 
+            parts_set += {part.usage,}
         }
     }
     if valid_instruction {
