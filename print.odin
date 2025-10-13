@@ -87,7 +87,7 @@ print_instruction :: proc(instruction: ^Instruction) {
 }
 
 print_registers :: proc(registers: ^Registers) {
-  fmt.printf("; Registers:\n; a: %d,  b: %d,  c: %d,  d: %d,\n;sp: %d, bp: %d, si: %d, di: %d,\n;es: %d, cs: %d, ss: %d, ds: %d,\n;ip: %d,        flags: %d\n", 
+  fmt.printf("; Registers:\n;  a: %x,  b: %x,  c: %x,  d: %x,\n; sp: %x, bp: %x, si: %x, di: %x,\n; es: %x, cs: %x, ss: %x, ds: %x,\n; ip: %x,        flags: %x\n", 
     registers.ax, registers.bx, registers.cx, registers.dx,
     registers.sp, registers.bp, registers.si, registers.di,
     registers.es, registers.cs, registers.ss, registers.ds,

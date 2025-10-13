@@ -55,8 +55,6 @@ OperandAccess :: struct {
 simulate_instruction :: proc(disassembly_context: ^DisassemblyContext, registers: ^Registers, instruction: Instruction) {
   access0 := extract_operand_access(disassembly_context, registers, instruction.operands[0])
   access1 := extract_operand_access(disassembly_context, registers, instruction.operands[1])
-  fmt.println(access0)
-  fmt.println(access1)
 
   #partial switch instruction.op {
     case .Mov:
